@@ -64,22 +64,112 @@ class ApiDataService {
         return result.data;
       } else {
         console.error('❌ API returned error:', result.error);
-        return null;
+        throw new Error('API returned error');
       }
 
     } catch (error) {
       if (error.name === 'TimeoutError') {
         console.error('⏱️ API request timed out');
       } else if (error.message.includes('Failed to fetch')) {
-        console.error('🔌 Cannot connect to API server. Make sure it\'s running on http://localhost:3001');
-        console.log('💡 To start the API server:');
-        console.log('   1. npm install express cors xlsx');
-        console.log('   2. node server.js');
+        console.error('🔌 Cannot connect to API server. Falling back to static data...');
       } else {
         console.error('❌ Error fetching data from API:', error);
       }
+      
+      // Fallback: fetch static JSON file directly
+      return this.fetchStaticData();
+    }
+  }
+
+  /**
+   * Fallback: Fetch data directly from static JSON file
+   */
+  async fetchStaticData(): Promise<DashboardData | null> {
+    try {
+      console.log('📄 Fetching data from static JSON file...');
+      
+      const response = await fetch('/data/cached_data.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch static data: ${response.status}`);
+      }
+      
+      const rawData = await response.json();
+      
+      // Process the raw data into the expected format
+      const processedData = this.processRawData(rawData);
+      
+      console.log('✅ Successfully loaded static data');
+      console.log('📊 Static data summary:', {
+        purchaseOrders: processedData.purchaseOrders.length,
+        operatingUnits: processedData.operatingUnits.length,
+        metrics: processedData.metrics
+      });
+      
+      this.cachedData = processedData;
+      return processedData;
+      
+    } catch (error) {
+      console.error('❌ Failed to load static data:', error);
       return null;
     }
+  }
+
+  /**
+   * Process raw cached data into dashboard format
+   */
+  private processRawData(rawData: any): DashboardData {
+    const purchaseOrders = rawData.purchaseOrders || [];
+    
+    // Extract unique vendors
+    const vendorMap = new Map();
+    purchaseOrders.forEach((po: any) => {
+      if (po.vendorName && !vendorMap.has(po.vendorName)) {
+        vendorMap.set(po.vendorName, {
+          name: po.vendorName,
+          id: po.id || po.vendorName,
+          totalSpend: 0,
+          orderCount: 0
+        });
+      }
+    });
+    
+    // Calculate vendor spending
+    purchaseOrders.forEach((po: any) => {
+      if (po.vendorName && vendorMap.has(po.vendorName)) {
+        const vendor = vendorMap.get(po.vendorName);
+        vendor.totalSpend += po.amount || 0;
+        vendor.orderCount += 1;
+      }
+    });
+    
+    const vendors = Array.from(vendorMap.values());
+    
+    // Extract unique operating units
+    const operatingUnits = [...new Set(purchaseOrders.map((po: any) => po.operatingUnit))].filter(Boolean);
+    
+    // Calculate metrics
+    const totalProcurement = purchaseOrders.reduce((sum: number, po: any) => sum + (po.amount || 0), 0);
+    const avgSpendPerVendor = vendors.length > 0 ? totalProcurement / vendors.length : 0;
+    
+    // Get top vendors by spending
+    const topVendorsBySpend = vendors
+      .sort((a, b) => b.totalSpend - a.totalSpend)
+      .slice(0, 10)
+      .map(v => ({ vendor: v.name, amount: v.totalSpend }));
+
+    return {
+      purchaseOrders,
+      vendors,
+      operatingUnits,
+      topVendorsBySpend,
+      metrics: {
+        totalVendors: vendors.length,
+        totalOperatingUnits: operatingUnits.length,
+        totalProcurement,
+        activePOs: purchaseOrders.length,
+        avgSpendPerVendor
+      }
+    };
   }
 
   /**
