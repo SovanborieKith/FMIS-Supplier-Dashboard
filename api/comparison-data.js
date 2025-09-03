@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
 
   try {
     // Read the cached comparison data
-    const dataPath = path.join(process.cwd(), 'public', 'data', 'comparison_cache.json');
+    const dataPath = path.join(process.cwd(), 'public', 'data', 'cached_data.json');
     const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     
     res.status(200).json({

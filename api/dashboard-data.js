@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
 
   try {
     // Read the cached data file
-    const dataPath = path.join(process.cwd(), 'public', 'data', 'dashboard_cache.json');
+    const dataPath = path.join(process.cwd(), 'public', 'data', 'cached_data.json');
     const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     
     res.status(200).json({
