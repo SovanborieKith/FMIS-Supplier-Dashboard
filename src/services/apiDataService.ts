@@ -359,7 +359,9 @@ class ApiDataService {
       vendorsCount: vendors.length,
       yearlyDataCount: yearlyData.length,
       sampleVendors: vendors.slice(0, 3).map(v => v.name),
-      sampleYearlyData: yearlyData.slice(0, 2)
+      sampleYearlyData: yearlyData.slice(0, 2),
+      fullVendorsData: vendors.slice(0, 3),
+      fullYearlyData: yearlyData.slice(0, 3)
     });
     
     return {
