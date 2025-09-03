@@ -228,12 +228,19 @@ class ApiDataService {
         return result.data;
       } else {
         console.error('❌ API returned error for comparison data:', result.error);
-        return null;
+        throw new Error('API returned error');
       }
 
     } catch (error) {
       console.error('❌ Error fetching comparison data from API:', error);
-      return null;
+      console.log('📄 Falling back to static data for comparison...');
+      
+      // Fallback: use the same static data processing
+      if (!this.cachedData) {
+        await this.fetchDashboardData(); // This will load and cache the static data
+      }
+      
+      return this.cachedData;
     }
   }
 
