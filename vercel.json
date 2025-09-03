@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/dashboard-data.js": {
+      "runtime": "@vercel/node@20.x"
+    },
+    "api/comparison-data.js": {
+      "runtime": "@vercel/node@20.x"
+    },
+    "api/health.js": {
+      "runtime": "@vercel/node@20.x"
+    }
+  }
+}
