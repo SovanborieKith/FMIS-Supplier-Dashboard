@@ -240,8 +240,132 @@ class ApiDataService {
         await this.fetchDashboardData(); // This will load and cache the static data
       }
       
-      return this.cachedData;
+      // Generate comparison data from our cached dashboard data
+      return this.generateComparisonDataFromCache();
     }
+  }
+
+  /**
+   * Generate comparison data structure from cached dashboard data
+   */
+  private generateComparisonDataFromCache(): any {
+    if (!this.cachedData || !this.cachedData.purchaseOrders) {
+      console.log('⚠️ No cached data available for comparison, using fallback mock data');
+      return {
+        vendors: [
+          {
+            name: 'KAMPUCHEA TELA LIMITED',
+            years: { 2021: true, 2022: true, 2023: true, 2024: true, 2025: true }
+          },
+          {
+            name: 'M.R.H LIMITED CO.,LTD',
+            years: { 2021: false, 2022: true, 2023: true, 2024: false, 2025: false }
+          },
+          {
+            name: 'Strategy Object FZ LLC',
+            years: { 2021: false, 2022: false, 2023: false, 2024: true, 2025: true }
+          },
+          {
+            name: 'ກິດຈະການ ຄຸ້ມວົງ ລ.ດ',
+            years: { 2021: false, 2022: false, 2023: false, 2024: true, 2025: true }
+          },
+          {
+            name: 'ບໍລິສັດ ກຸ່ມອາຊ່ານ',
+            years: { 2021: true, 2022: true, 2023: true, 2024: true, 2025: false }
+          }
+        ],
+        yearlyData: [
+          {
+            unit: '1001',
+            years: { 2021: 15, 2022: 18, 2023: 22, 2024: 25, 2025: 20 }
+          },
+          {
+            unit: '1002',
+            years: { 2021: 12, 2022: 15, 2023: 18, 2024: 22, 2025: 19 }
+          },
+          {
+            unit: '1003',
+            years: { 2021: 8, 2022: 12, 2023: 16, 2024: 20, 2025: 18 }
+          },
+          {
+            unit: '1004',
+            years: { 2021: 10, 2022: 14, 2023: 18, 2024: 23, 2025: 21 }
+          },
+          {
+            unit: '1005',
+            years: { 2021: 6, 2022: 9, 2023: 13, 2024: 17, 2025: 15 }
+          }
+        ]
+      };
+    }
+
+    console.log('🔄 Generating comparison data from real Excel data...');
+    
+    // Process real data to create comparison structure
+    const purchaseOrders = this.cachedData.purchaseOrders;
+    const years = [2021, 2022, 2023, 2024, 2025];
+    
+    // Generate vendor comparison data
+    const vendorsByYear: Record<number, Set<string>> = {};
+    years.forEach(year => {
+      vendorsByYear[year] = new Set();
+    });
+    
+    // Track vendors by year
+    purchaseOrders.forEach((po: any) => {
+      const year = new Date(po.date).getFullYear();
+      if (years.includes(year)) {
+        vendorsByYear[year].add(po.vendorName);
+      }
+    });
+    
+    // Get all unique vendors
+    const allVendors = new Set<string>();
+    purchaseOrders.forEach((po: any) => {
+      allVendors.add(po.vendorName);
+    });
+    
+    // Create vendor comparison data
+    const vendors = Array.from(allVendors).map(vendorName => ({
+      name: vendorName,
+      years: years.reduce((acc, year) => {
+        acc[year] = vendorsByYear[year].has(vendorName);
+        return acc;
+      }, {} as Record<number, boolean>)
+    }));
+    
+    // Generate yearly data by operating unit
+    const ouByYear: Record<string, Record<number, number>> = {};
+    
+    purchaseOrders.forEach((po: any) => {
+      const year = new Date(po.date).getFullYear();
+      const ou = po.operatingUnit;
+      
+      if (years.includes(year)) {
+        if (!ouByYear[ou]) {
+          ouByYear[ou] = {};
+          years.forEach(y => ouByYear[ou][y] = 0);
+        }
+        ouByYear[ou][year]++;
+      }
+    });
+    
+    const yearlyData = Object.entries(ouByYear).map(([unit, yearData]) => ({
+      unit,
+      years: yearData
+    }));
+    
+    console.log('✅ Generated comparison data:', {
+      vendorsCount: vendors.length,
+      yearlyDataCount: yearlyData.length,
+      sampleVendors: vendors.slice(0, 3).map(v => v.name),
+      sampleYearlyData: yearlyData.slice(0, 2)
+    });
+    
+    return {
+      vendors,
+      yearlyData
+    };
   }
 
   /**
