@@ -26,8 +26,8 @@ class ApiDataService {
   private cachedData: DashboardData | null = null;
 
   constructor() {
-    // API server URL
-    this.baseUrl = 'http://localhost:3001';
+    // API server URL - use relative paths for Vercel deployment
+    this.baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001';
   }
 
   /**
